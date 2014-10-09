@@ -48,6 +48,18 @@ class Football(thinkbayes2.Suite):
         return mix
 
 def constructPriors():
+
+    #Might be wrong. From
+    #http://www.teamrankings.com/nfl/stat/touchdowns-per-game and/or
+    #http://www.sportingcharts.com/nfl/stats/touchdowns-per-game/2014/
+    FG_per_game2014 = [ 2.8, 2.6, 2.6, 2.2, 2.2, 2.2, 1.7, 2.0, 2.0, 2.0, 2.0,
+                        2.0, 1.3, 1.8, 1.8, 1.8, 1.6, 1.5, 1.5, 1.4, 1.4, 1.3,
+                        1.2, 1.2, 1.2, 1.2, 1.0, 1.0, 1.0, 0.8, 0.8, 0.8 ]
+
+    TD_per_game2014 = [ 3.5, 3.4, 3.4, 3.3, 3.2, 3.2, 3.2, 2.8, 2.8, 2.8, 2.8,
+                        2.8, 2.6, 2.5, 2.4, 2.3, 2.2, 2.2, 2.0, 2.0, 2.0, 2.0,
+                        2.0, 2.0, 2.0, 1.8, 1.8, 1.8, 1.6, 1.5, 1.4, 1.4 ]
+
     meanFG=1.647
     meanTD=2.397
     FGtime=60/meanFG
@@ -64,9 +76,10 @@ def constructPriors():
     thinkplot.Pdf(suiteFG, label='priorTD')
     print('Touchdown prior mean', suiteTD.Mean())
 
-    ##construct priors using pseudo-observation
-    suiteFG.Update(FGtime)
-    suiteTD.Update(TDtime)
+    ##construct priors using pseudo-observations
+    for (FGlam, TDlam) in zip(FG_per_game2014, TD_per_game2014):
+        suiteFG.Update(60.0 / FGlam)
+        suiteTD.Update(60.0 / TDlam)
 
     thinkplot.Pdf(suiteFG, label='prior 2: FG pseudo-observation')
     print('pseudo-observation', suiteFG.Mean())
