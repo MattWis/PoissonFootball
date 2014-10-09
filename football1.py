@@ -47,7 +47,7 @@ class Football(thinkbayes2.Suite):
         mix += score #shift by 2 because we've already seen 2
         return mix
 
-def main():
+def constructPriors():
     meanFG=1.647
     meanTD=2.397
     FGtime=60/meanFG
@@ -56,36 +56,31 @@ def main():
     hyposFG = numpy.linspace(0, 20, 201)
     suiteFG = Football(hyposFG)
 
-    thinkplot.Pdf(suiteFG, label='priorFG')
-    print('Field Goal prior mean', suiteFG.Mean())
-
     hyposTD = numpy.linspace(0, 20, 201)
     suiteTD = Football(hyposTD)
 
+    thinkplot.Pdf(suiteFG, label='priorFG')
+    print('Field Goal prior mean', suiteFG.Mean())
     thinkplot.Pdf(suiteFG, label='priorTD')
     print('Touchdown prior mean', suiteTD.Mean())
 
-    #construct a prior using pseudo-observation
+    ##construct priors using pseudo-observation
     suiteFG.Update(FGtime)
+    suiteTD.Update(TDtime)
+
     thinkplot.Pdf(suiteFG, label='prior 2: FG pseudo-observation')
     print('pseudo-observation', suiteFG.Mean())
-
-    #construct a prior using pseudo-observation
-    suiteTD.Update(TDtime)
     thinkplot.Pdf(suiteTD, label='prior 2: TD pseudo-observation')
     print('pseudo-observation', suiteTD.Mean())
 
-    #update with real data
-    #suite.Update(11)
-    #thinkplot.Pdf(suite, label='posterior 1 after pseudo-observation')
-    #print('after one goal', suite.Mean())
-   
-    #revised belief that goal scoring rate (x axis) is higher
-
-    #suite.Update(12)
-    #thinkplot.Pdf(suite, label='posterior 2')
-    #print('after two goals', suite.Mean())
     thinkplot.Show()
+
+    return suiteTD, suiteFG
+
+
+def main():
+
+    suiteTD, suiteFG = constructPriors()
 
     #if we know what lamda is, we know the goals left in the game.
     FGpredict=suiteFG.PredRemaining(60,0)
