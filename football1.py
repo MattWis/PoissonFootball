@@ -11,8 +11,23 @@ import numpy
 import thinkbayes2
 import thinkplot
 
+class Football():
 
-class Football(thinkbayes2.Suite):
+    def __init__(self, hypos):
+        self.TD = ScoreType(hypos[0])
+        self.FG = ScoreType(hypos[1])
+
+    def Update(self, data):
+        self.TD.Update(data[0])
+        self.FG.Update(data[1])
+
+    def PredRemaining(self, rem_time, scores):
+        FGpredict = self.FG.PredRemaining(60,0)
+        TDpredict = self.TD.PredRemaining(60,0)
+        GoalTotal = FGpredict * 3 + TDpredict * 7
+        return GoalTotal
+
+class ScoreType(thinkbayes2.Suite):
     """Represents hypotheses about."""
 
     def Likelihood(self, data, hypo):
@@ -47,6 +62,35 @@ class Football(thinkbayes2.Suite):
         mix += score #shift by 2 because we've already seen 2
         return mix
 
+def score_to_TD_FG(score):
+    """
+    Assume that the score was created by the smaller number of TD+FG
+    Also, assume that >8 scores per quarter doesn't happen
+    So, 21 points is (3,0), not (0,7)
+    """
+    points = {3: (0,1), 7: (1,0)}
+    two_scores = add_dicts(points, points)
+    four_scores = add_dicts(two_scores, two_scores)
+    eight_scores = add_dicts(four_scores, four_scores)
+
+    if score == 0:
+        return (0,0)
+    if score in eight_scores:
+        return eight_scores[score]
+    else:
+        raise ValueError("Score can't be that!")
+
+
+def add_dicts(d1, d2):
+    d3 = {}
+    for k1, i1 in d1.items():
+        for k2, i2 in d2.items():
+            d3[k1 + k2] = (i1[0] + i2[0], i1[1] + i2[1])
+            d3[k2] = i2
+        d3[k1] = i1
+    return d3
+
+
 def constructPriors():
 
     #Might be wrong. From
@@ -65,43 +109,33 @@ def constructPriors():
     FGtime=60/meanFG
     TDtime=60/meanTD
 
-    hyposFG = numpy.linspace(0, 20, 201)
-    suiteFG = Football(hyposFG)
+    suite = Football((numpy.linspace(0, 20, 201), numpy.linspace(0, 20, 201)))
 
-    hyposTD = numpy.linspace(0, 20, 201)
-    suiteTD = Football(hyposTD)
-
-    thinkplot.Pdf(suiteFG, label='priorFG')
-    print('Field Goal prior mean', suiteFG.Mean())
-    thinkplot.Pdf(suiteFG, label='priorTD')
-    print('Touchdown prior mean', suiteTD.Mean())
+    thinkplot.Pdf(suite.FG, label='priorFG')
+    print('Field Goal prior mean', suite.FG.Mean())
+    thinkplot.Pdf(suite.TD, label='priorTD')
+    print('Touchdown prior mean', suite.TD.Mean())
 
     ##construct priors using pseudo-observations
     for (FGlam, TDlam) in zip(FG_per_game2014, TD_per_game2014):
-        suiteFG.Update(60.0 / FGlam)
-        suiteTD.Update(60.0 / TDlam)
+        suite.Update((60.0 / TDlam, 60.0 / FGlam))
 
-    thinkplot.Pdf(suiteFG, label='prior 2: FG pseudo-observation')
-    print('pseudo-observation', suiteFG.Mean())
-    thinkplot.Pdf(suiteTD, label='prior 2: TD pseudo-observation')
-    print('pseudo-observation', suiteTD.Mean())
+    thinkplot.Pdf(suite.FG, label='prior 2: FG pseudo-observation')
+    print('pseudo-observation', suite.FG.Mean())
+    thinkplot.Pdf(suite.TD, label='prior 2: TD pseudo-observation')
+    print('pseudo-observation', suite.TD.Mean())
 
     thinkplot.Show()
 
-    return suiteTD, suiteFG
+    return suite
 
 
 def main():
 
-    suiteTD, suiteFG = constructPriors()
+    suite = constructPriors()
 
     #if we know what lamda is, we know the goals left in the game.
-    FGpredict=suiteFG.PredRemaining(60,0)
-    TDpredict=suiteTD.PredRemaining(60,0)
-    GoalTotal=FGpredict*3+TDpredict*7
-    thinkplot.Clf()
-    #thinkplot.Hist(FGpredict)
-    #thinkplot.Hist(TDpredict)
+    GoalTotal = suite.PredRemaining(60, (0, 0))
     thinkplot.Hist(GoalTotal)
     thinkplot.Show()
 
