@@ -2,14 +2,18 @@ import os
 import datetime
 
 exceptions = { "Bears 23Eagles 28": ((23, 28), (15 + 6 + 4 / 60.0, "TD", "Bears")),
-               "Bears 31Eagles 28": ((31, 28), (15 + 1 + 29 / 60.0, "TD", "Bears")) }
+               "Bears 31Eagles 28": ((31, 28), (15 + 1 + 29 / 60.0, "TD", "Bears")),
+               "Giants 14Cardinals 19": ((14,19), (0 + 10 + 10 / 60.0, "TD", "Cardinals")),
+               "Lions 35Giants 14": ((27,14), (0 + 4 + 39 / 60.0, "TD", "Lions")) }
 
 
 points_for = { "FG": 3, "TD": 7 }
 quarter_times = {"1st Quarter": 45, "2nd Quarter": 30,
                  "3rd Quarter": 15, "4th Quarter": 0 }
+games_in_season = 5
 
 def main():
+    #team_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team8.html"
     team_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team7.html"
     games = scrape_team(team_url)
     print(games)
@@ -27,6 +31,8 @@ def scrape_team(team_url):
 
     games = []
     for url in urls:
+        if len(games) >= games_in_season:
+            break
         games.append(scrape_box_score(url))
     return games
 
