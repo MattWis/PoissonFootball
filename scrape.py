@@ -10,8 +10,14 @@ quarter_times = {"1st Quarter": 45, "2nd Quarter": 30,
                  "3rd Quarter": 15, "4th Quarter": 0 }
 
 def main():
+    team_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team7.html"
+    games = scrape_team(team_url)
+    print(games)
+
+
+def scrape_team(team_url):
     url_base = "http://www.covers.com"
-    url = url_base + "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team7.html"
+    url = url_base + team_url
     output = os.popen("curl " + url + " | " +
                     "pup table.data td.datacell a attr{href}")
     urls = []
@@ -21,9 +27,8 @@ def main():
 
     games = []
     for url in urls:
-        print(url)
         games.append(scrape_box_score(url))
-    print(games)
+    return games
 
 def scrape_box_score(url):
     html = os.popen("curl " + url + " | pup table.num-left text{}")
@@ -35,7 +40,6 @@ def scrape_box_score(url):
 
     scores = [] # [(rem_time, "FG" or "TD", team_name)]
 
-    #teams = ("49ers", "Eagles")
     teams = get_team_names(filtered)
     cur_score = (0,0)
     i = 0
