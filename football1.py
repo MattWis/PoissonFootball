@@ -10,6 +10,7 @@ from __future__ import print_function, division
 import numpy
 import thinkbayes2
 import thinkplot
+from scrape import scrape_team
 
 class Football():
 
@@ -20,6 +21,12 @@ class Football():
     def Update(self, data):
         self.TD.Update(data[0])
         self.FG.Update(data[1])
+
+    def UpdateFG(self, delta_time):
+        self.FG.Update(delta_time)
+
+    def UpdateTD(self, delta_time):
+        self.TD.Update(delta_time)
 
     def PredRemaining(self, rem_time, scores):
         FGpredict = self.FG.PredRemaining(60,0)
@@ -40,7 +47,7 @@ class ScoreType(thinkbayes2.Suite):
         lam=parameter determining rate in events/unit time
         """
         x = data #time between goals in minutes
-        lam = hypo/60 #time per minute: the 11 in the update is 11 minutes into the game
+        lam = hypo/60.0 #goals per minute
         like = thinkbayes2.EvalExponentialPdf(x,lam) #evaluating for every value of lamda
         return like
 
@@ -93,51 +100,87 @@ def add_dicts(d1, d2):
 
 def constructPriors():
 
-    #Might be wrong. From
-    #http://www.teamrankings.com/nfl/stat/touchdowns-per-game and/or
-    #http://www.sportingcharts.com/nfl/stats/touchdowns-per-game/2014/
-    FG_per_game2014 = [ 2.8, 2.6, 2.6, 2.2, 2.2, 2.2, 1.7, 2.0, 2.0, 2.0, 2.0,
-                        2.0, 1.3, 1.8, 1.8, 1.8, 1.6, 1.5, 1.5, 1.4, 1.4, 1.3,
-                        1.2, 1.2, 1.2, 1.2, 1.0, 1.0, 1.0, 0.8, 0.8, 0.8 ]
+    eagles_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team7.html"
+    giants_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team8.html"
 
-    TD_per_game2014 = [ 3.5, 3.4, 3.4, 3.3, 3.2, 3.2, 3.2, 2.8, 2.8, 2.8, 2.8,
-                        2.8, 2.6, 2.5, 2.4, 2.3, 2.2, 2.2, 2.0, 2.0, 2.0, 2.0,
-                        2.0, 2.0, 2.0, 1.8, 1.8, 1.8, 1.6, 1.5, 1.4, 1.4 ]
+    eagles = Football((numpy.linspace(0, 20, 201), numpy.linspace(0, 20, 201)))
+    giants = Football((numpy.linspace(0, 20, 201), numpy.linspace(0, 20, 201)))
 
-    meanFG=1.647
-    meanTD=2.397
-    FGtime=60/meanFG
-    TDtime=60/meanTD
+    eagles_data = scrape_team(eagles_url)
+    giants_data = scrape_team(giants_url)
 
-    suite = Football((numpy.linspace(0, 20, 201), numpy.linspace(0, 20, 201)))
+    last_time_FG_eagles = 0
+    last_time_TD_eagles = 0
+    for game in eagles_data:
+        last_time_FG_eagles += 60.0
+        last_time_TD_eagles += 60.0
+        for item in game:
+            if item[2] == "Eagles":
+                if item[1] == "FG":
+                    rem_time = item[0]
+                    inter_arrival = last_time_FG_eagles - rem_time
+                    last_time_FG_eagles = rem_time
 
-    thinkplot.Pdf(suite.FG, label='priorFG')
-    print('Field Goal prior mean', suite.FG.Mean())
-    thinkplot.Pdf(suite.TD, label='priorTD')
-    print('Touchdown prior mean', suite.TD.Mean())
+                    eagles.UpdateFG(inter_arrival)
+                if item[1] == "TD":
+                    rem_time = item[0]
+                    inter_arrival = last_time_TD_eagles - rem_time
+                    last_time_TD_eagles = rem_time
 
-    ##construct priors using pseudo-observations
-    for (FGlam, TDlam) in zip(FG_per_game2014, TD_per_game2014):
-        suite.Update((60.0 / TDlam, 60.0 / FGlam))
+                    eagles.UpdateTD(inter_arrival)
 
-    thinkplot.Pdf(suite.FG, label='prior 2: FG pseudo-observation')
-    print('pseudo-observation', suite.FG.Mean())
-    thinkplot.Pdf(suite.TD, label='prior 2: TD pseudo-observation')
-    print('pseudo-observation', suite.TD.Mean())
+    last_time_FG_giants = 0
+    last_time_TD_giants = 0
+    for game in giants_data:
+        last_time_FG_giants += 60.0
+        last_time_TD_giants += 60.0
+        for item in game:
+            if item[2] == "Giants":
+                if item[1] == "FG":
+                    rem_time = item[0]
+                    inter_arrival = last_time_FG_giants - rem_time
+                    last_time_FG_giants = rem_time
 
-    thinkplot.Show()
+                    giants.UpdateFG(inter_arrival)
+                if item[1] == "TD":
+                    rem_time = item[0]
+                    inter_arrival = last_time_TD_giants - rem_time
+                    last_time_TD_giants = rem_time
 
-    return suite
+                    giants.UpdateTD(inter_arrival)
+
+
+    #thinkplot.Pdf(suite.FG, label='priorFG')
+    #print('Field Goal prior mean', suite.FG.Mean())
+    #thinkplot.Pdf(suite.TD, label='priorTD')
+    #print('Touchdown prior mean', suite.TD.Mean())
+
+    ###construct priors using pseudo-observations
+    #for (FGlam, TDlam) in zip(FG_per_game2014, TD_per_game2014):
+        #suite.Update((60.0 / TDlam, 60.0 / FGlam))
+
+    #thinkplot.Pdf(suite.FG, label='prior 2: FG pseudo-observation')
+    #print('pseudo-observation', suite.FG.Mean())
+    #thinkplot.Pdf(suite.TD, label='prior 2: TD pseudo-observation')
+    #print('pseudo-observation', suite.TD.Mean())
+
+    #thinkplot.Show()
+
+    return eagles, giants
 
 
 def main():
 
-    suite = constructPriors()
+    eagles, giants = constructPriors()
 
     #if we know what lamda is, we know the goals left in the game.
-    GoalTotal = suite.PredRemaining(60, (0, 0))
-    thinkplot.Hist(GoalTotal)
-    thinkplot.Show()
+    GoalTotal_giants = giants.PredRemaining(60, (0, 0))
+    GoalTotal_eagles = eagles.PredRemaining(60, (0, 0))
+    print("Giants win", GoalTotal_eagles.ProbLess(GoalTotal_giants))
+    print("Eagles win", GoalTotal_giants.ProbLess(GoalTotal_eagles))
+    #print(GoalTotal.MakeCdf().CredibleInterval(75))
+    #thinkplot.Hist(GoalTotal_giants)
+    #thinkplot.Show()
 
 if __name__ == '__main__':
     main()
