@@ -28,10 +28,11 @@ class Football():
     def UpdateTD(self, delta_time):
         self.TD.Update(delta_time)
 
-    def PredRemaining(self, rem_time, scores):
-        FGpredict = self.FG.PredRemaining(60,0)
-        TDpredict = self.TD.PredRemaining(60,0)
+    def PredRemaining(self, rem_time, score):
+        FGpredict = self.FG.PredRemaining(rem_time, 0)
+        TDpredict = self.TD.PredRemaining(rem_time, 0)
         GoalTotal = FGpredict * 3 + TDpredict * 7
+        GoalTotal += score
         return GoalTotal
 
 class ScoreType(thinkbayes2.Suite):
