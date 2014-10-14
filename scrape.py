@@ -11,6 +11,7 @@ points_for = { "FG": 3, "TD": 7 }
 quarter_times = {"1st Quarter": 45, "2nd Quarter": 30,
                  "3rd Quarter": 15, "4th Quarter": 0 }
 games_in_season = 5
+games_to_ignore = 1
 
 def main():
     #team_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team8.html"
@@ -30,7 +31,7 @@ def scrape_team(team_url):
             urls.append(url_base + line.strip())
 
     games = []
-    for url in urls:
+    for url in urls[games_to_ignore:]:
         if len(games) >= games_in_season:
             break
         games.append(scrape_box_score(url))
