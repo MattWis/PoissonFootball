@@ -13,16 +13,28 @@ import thinkplot
 from scrape import scrape_team
 
 class Football():
+    """ Represents hypotheses about a Football teams offense,
+    in terms of scores per game, and the probability of a given
+    score being a TD.
+    """
 
     def __init__(self, hypos):
         self.score = ScoreType(hypos[0])
-        self.TDPercent = ProbEstimator(hypos[1])
+        self.TDPercent = BooleanEstimator(hypos[1])
 
     def Update(self, data):
+        """Update the child PMFs based on the data.
+        data = (time since last score, boolean flag for the score being a TD)
+        """
         self.score.Update(data[0])
         self.TDPercent.Update(data[1])
 
     def PredRemaining(self, rem_time, points_scored):
+        """Plots the predictive distribution for final number of goals.
+
+        rem_time: remaining time in the game in minutes
+        points_scored: points already scored
+        """
         scorePredict = self.score.PredRemaining(rem_time,0)
         scorePmf = thinkbayes2.Pmf()
         for prob_td, prob_p in self.TDPercent.Items():
@@ -40,7 +52,7 @@ class Football():
         mix += points_scored
         return mix
 
-class ProbEstimator(thinkbayes2.Suite):
+class BooleanEstimator(thinkbayes2.Suite):
     """Represents a choice between 2 options"""
 
     def Likelihood(self, data, hypo):
@@ -73,16 +85,15 @@ class ProbEstimator(thinkbayes2.Suite):
         return mix
 
 class ScoreType(thinkbayes2.Suite):
-    """Represents hypotheses about."""
+    """Represents hypotheses about the lambda parameter of a
+    Poisson Process to generate scores.
+    """
 
     def Likelihood(self, data, hypo):
         """Computes the likelihood of the data under the hypothesis.
 
         hypo: hypothetical goal scoring rate in goals per game
         data: time between goals in minutes
-
-        x=quantity where evaluating print_function
-        lam=parameter determining rate in events/unit time
         """
         x = data #time between goals in minutes
         lam = hypo/60.0 #goals per minute
@@ -106,6 +117,10 @@ class ScoreType(thinkbayes2.Suite):
         return mix
 
 def constructPriors():
+    """Constructs an even prior for both teams, and then
+    uses data from www.covers.com from the 2014 season to
+    update the priors
+    """
 
     eagles_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team7.html"
     giants_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team8.html"
@@ -136,11 +151,6 @@ def constructPriors():
                 giants.Update((inter_arrival, TD))
                 last_time = item[0]
 
-
-    #thinkplot.Pdf(giants.TDPercent, label='TD Percent')
-    #thinkplot.Pdf(giants.score, label='TD Percent')
-    #thinkplot.Show()
-
     print("Eagles: ", eagles.TDPercent.Mean(), eagles.score.Mean())
     print("Giants: ", giants.TDPercent.Mean(), giants.score.Mean())
 
@@ -149,18 +159,18 @@ def constructPriors():
 
 
 def main():
+    """Look at the October 12th, 2014 game between the Giants and the Eagles,
+    and predict the probabilities of each team winning.
+    """
 
     eagles, giants = constructPriors()
 
-    #if we know what lamda is, we know the goals left in the game.
     GoalTotalGiants = giants.PredRemaining(60, 0)
     GoalTotalEagles = eagles.PredRemaining(60, 0)
     print("Giants win", GoalTotalEagles < GoalTotalGiants)
     print("Eagles win", GoalTotalGiants < GoalTotalEagles)
-    print(GoalTotalEagles.MakeCdf().CredibleInterval(75))
-    thinkplot.Hist(GoalTotalEagles)
-    thinkplot.Hist(GoalTotalGiants)
-    thinkplot.Show()
+    print(GoalTotalEagles.MakeCdf().CredibleInterval(90))
+    print(GoalTotalGiants.MakeCdf().CredibleInterval(90))
 
 if __name__ == '__main__':
     main()
