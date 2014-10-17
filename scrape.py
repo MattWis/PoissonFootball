@@ -14,13 +14,20 @@ games_in_season = 5
 games_to_ignore = 1
 
 def main():
-    #team_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team8.html"
-    team_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team7.html"
+    """Scrape a given team url, and print the results
+    """
+    giants_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team8.html"
+    eagles_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team7.html"
+    team_url = eagles_url
     games = scrape_team(team_url)
     print(games)
 
 
 def scrape_team(team_url):
+    """Scrape a team url from www.covers.com.
+    Uses pup to process html.
+    Returns a list of games from scrape_box_score
+    """
     url_base = "http://www.covers.com"
     url = url_base + team_url
     output = os.popen("curl " + url + " | " +
@@ -38,6 +45,11 @@ def scrape_team(team_url):
     return games
 
 def scrape_box_score(url):
+    """Scrape a team url from www.covers.com.
+    Uses pup to process html.
+    Returns a list of scoring events, which have the form:
+        (time left in game, scoring type, team that scored)
+    """
     html = os.popen("curl " + url + " | pup table.num-left text{}")
     filtered = []
     for line in html:
@@ -64,6 +76,9 @@ def scrape_box_score(url):
     return scores
 
 def get_team_names(lines):
+    """Gets the names of teams playing a certain game.
+    Returns a tuple of two team names as strings
+    """
     i = 0
     line = lines[i]
     while line != None:
@@ -75,6 +90,15 @@ def get_team_names(lines):
     return (team0, team1)
 
 def parseScoreTime(lines, cur_score, teams):
+    """Parses and individual scoring event, and the time it happened.
+    Uses exceptions defined at the top of this file to handle scores that
+    aren't 3 or 7 points.
+
+    Returns an odd format:
+        ( new score for the team,
+          (time left in game at scoring event, type of score, team name)
+        )
+    """
     if lines[3] + lines[4] in exceptions:
         return exceptions[lines[3] + lines[4]]
 
@@ -96,6 +120,11 @@ def parseScoreTime(lines, cur_score, teams):
     return new_score, (rem_time, goal_type, team)
 
 def parseScore(lines, cur_score, teams, goal_type):
+    """Intentionally brittle function to parse a score out from a string.
+    Will ask to add exception on error.
+    Returns the new score and team name
+    """
+
     if not teams[0] in lines[0]:
         raise ValueError("Team error")
     if not teams[1] in lines[1]:
@@ -121,6 +150,8 @@ def parseScore(lines, cur_score, teams, goal_type):
     return new_score, team
 
 def error(lines, cur_score, teams, goal_type):
+    """Errors on odd data, and asks for an exception to be added
+    """
     print("Add exception for: '"+ lines[0] + lines[1] + "'")
     print(lines)
     print(cur_score)
