@@ -47,7 +47,6 @@ class Football():
                     tdProbPmf.Incr(points, prob_s * ncr * (prob_td**num_tds * (1 - prob_td)**num_fgs))
             scorePmf.Incr(tdProbPmf, prob_p)
 
-        print(scorePmf.Normalize())
         mix = thinkbayes2.MakeMixture(scorePmf)
         mix += points_scored
         return mix
@@ -150,10 +149,6 @@ def constructPriors():
                 inter_arrival = last_time - item[0]
                 giants.Update((inter_arrival, TD))
                 last_time = item[0]
-
-    print("Eagles: ", eagles.TDPercent.Mean(), eagles.score.Mean())
-    print("Giants: ", giants.TDPercent.Mean(), giants.score.Mean())
-
 
     return eagles, giants
 
