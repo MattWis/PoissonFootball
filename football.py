@@ -13,9 +13,38 @@ import thinkplot
 from scrape import scrape_team
 
 class Football():
-    """ Represents hypotheses about a Football teams offense,
+    """Represents hypotheses about a football team's offense and defense"""
+
+    def __init__(self, hypos, team_name = "None"):
+        self.offense = OffenseOrDefense(hypos)
+        self.defense = OffenseOrDefense(hypos)
+        self.name = team_name
+
+    def Update(self, data):
+        if (data[0]):
+            self.offense.Update(data[1])
+        else:
+            self.defense.Update(data[1])
+
+    def UpdateOffense(self, data):
+        self.offense.Update(data)
+
+    def UpdateDefense(self, data):
+        self.defense.Update(data)
+
+    def PredRemaining(self, rem_time, score, opp_team):
+        you_score = self.offense.PredRemaining(rem_time, score)
+        opponent_lets = opp_team.defense.PredRemaining(rem_time, score)
+        return (you_score + opponent_lets) / 2
+
+class OffenseOrDefense():
+    """ Represents hypotheses about a Football teams offense or defense,
     in terms of scores per game, and the probability of a given
     score being a TD.
+
+
+    For offense, it's the goals scored.
+    For defense, it's the goals allowed.
     """
 
     def __init__(self, hypos):
@@ -124,31 +153,42 @@ def constructPriors():
     eagles_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team7.html"
     giants_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team8.html"
 
-    eagles = Football((numpy.linspace(0, 20, 201), numpy.linspace(0, 1, 201)))
-    giants = Football((numpy.linspace(0, 20, 201), numpy.linspace(0, 1, 201)))
+    eagles = Football((numpy.linspace(0, 20, 201), numpy.linspace(0, 1, 201)), "Eagles")
+    giants = Football((numpy.linspace(0, 20, 201), numpy.linspace(0, 1, 201)), "Giants")
 
     eagles_data = scrape_team(eagles_url)
     giants_data = scrape_team(giants_url)
 
-    last_time = 0
+    last_time_o = 0
+    last_time_d = 0
     for game in eagles_data:
-        last_time += 60.0
+        last_time_o += 60
+        last_time_d += 60
         for item in game:
+            TD = (item[1] == "TD")
             if item[2] == "Eagles":
-                TD = (item[1] == "TD")
-                inter_arrival = last_time - item[0]
-                eagles.Update((inter_arrival, TD))
-                last_time = item[0]
+                inter_arrival = last_time_o - item[0]
+                eagles.UpdateOffense((inter_arrival, TD))
+                last_time_o = item[0]
+            else:
+                inter_arrival = last_time_d - item[0]
+                eagles.UpdateDefense((inter_arrival, TD))
+                last_time_d = item[0]
 
-    last_time = 0
+    last_time_o = 0
+    last_time_d = 0
     for game in giants_data:
-        last_time += 60
+        last_time_o += 60
+        last_time_d += 60
         for item in game:
             if item[2] == "Giants":
                 TD = (item[1] == "TD")
-                inter_arrival = last_time - item[0]
-                giants.Update((inter_arrival, TD))
-                last_time = item[0]
+                inter_arrival = last_time_o - item[0]
+                giants.UpdateOffense((inter_arrival, TD))
+                last_time_o = item[0]
+            else:
+                inter_arrival = last_time_d - item[0]
+                eagles.UpdateDefense((inter_arrival, TD))
 
     return eagles, giants
 
@@ -160,12 +200,12 @@ def main():
 
     eagles, giants = constructPriors()
 
-    GoalTotalGiants = giants.PredRemaining(60, 0)
-    GoalTotalEagles = eagles.PredRemaining(60, 0)
+    GoalTotalGiants = giants.PredRemaining(60, 0, eagles)
+    GoalTotalEagles = eagles.PredRemaining(60, 0, giants)
     print("Giants win", GoalTotalEagles < GoalTotalGiants)
     print("Eagles win", GoalTotalGiants < GoalTotalEagles)
-    print(GoalTotalEagles.MakeCdf().CredibleInterval(90))
-    print(GoalTotalGiants.MakeCdf().CredibleInterval(90))
+    print(GoalTotalEagles.MakeCdf().CredibleInterval(80))
+    print(GoalTotalGiants.MakeCdf().CredibleInterval(80))
 
 if __name__ == '__main__':
     main()
