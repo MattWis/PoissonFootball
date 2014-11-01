@@ -20,12 +20,6 @@ class Football():
         self.defense = OffenseOrDefense(hypos)
         self.name = team_name
 
-    def Update(self, data):
-        if (data[0]):
-            self.offense.Update(data[1])
-        else:
-            self.defense.Update(data[1])
-
     def UpdateOffense(self, data):
         self.offense.Update(data)
 
@@ -48,7 +42,7 @@ class OffenseOrDefense():
     """
 
     def __init__(self, hypos):
-        self.score = ScoreType(hypos[0])
+        self.score = ScoreCount(hypos[0])
         self.TDPercent = BooleanEstimator(hypos[1])
 
     def Update(self, data):
@@ -72,13 +66,13 @@ class OffenseOrDefense():
                 for num_tds in range(scores + 1):
                     num_fgs = scores - num_tds
                     points = 7 * num_tds + 3 * num_fgs
+
                     ncr = thinkbayes2.BinomialCoef(scores, num_tds)
-                    tdProbPmf.Incr(points, prob_s * ncr * (prob_td**num_tds * (1 - prob_td)**num_fgs))
+                    coef_prob = prob_td**num_tds * (1 - prob_td)**num_fgs
+                    tdProbPmf.Incr(points, prob_s * ncr * coef_prob)
             scorePmf.Incr(tdProbPmf, prob_p)
 
-        mix = thinkbayes2.MakeMixture(scorePmf)
-        mix += points_scored
-        return mix
+        return thinkbayes2.MakeMixture(scorePmf) + points_scored
 
 class BooleanEstimator(thinkbayes2.Suite):
     """Represents a choice between 2 options"""
@@ -94,25 +88,7 @@ class BooleanEstimator(thinkbayes2.Suite):
         else:
             return 1 - hypo
 
-    def PredRemaining(self, rem_time, score):
-        """Plots the predictive distribution for final number of goals.
-
-        rem_time: remaining time in the game in minutes
-        score: points already scored
-        """
-        rem_scores = self.score.PredRemaining(rem_time)
-
-        metapmf=thinkbayes2.Pmf() #PMF about PMFS. probabilities of pmf values
-        for lam, prob in self.Items(): #loop through probabilities of lamdas
-            lt = lam*rem_time/60
-            pmf=thinkbayes2.MakePoissonPmf(lt,20)
-            metapmf[pmf]=prob
-
-        mix = thinkbayes2.MakeMixture(metapmf)
-        mix += score
-        return mix
-
-class ScoreType(thinkbayes2.Suite):
+class ScoreCount(thinkbayes2.Suite):
     """Represents hypotheses about the lambda parameter of a
     Poisson Process to generate scores.
     """
