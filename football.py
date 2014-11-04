@@ -15,10 +15,30 @@ from scrape import scrape_team
 class Football():
     """Represents hypotheses about a football team's offense and defense"""
 
-    def __init__(self, hypos, team_name = "None"):
+    def __init__(self, hypos, team_name):
         self.offense = OffenseOrDefense(hypos)
         self.defense = OffenseOrDefense(hypos)
         self.name = team_name
+
+        self.UpdateGames(scrape_team(team_name))
+
+    def UpdateGames(self, game_data):
+        last_time_o = 0
+        last_time_d = 0
+        for game in game_data:
+            last_time_o += 60
+            last_time_d += 60
+            for item in game:
+                TD = (item[1] == "TD")
+                if item[2] == self.name:
+                    inter_arrival = last_time_o - item[0]
+                    self.UpdateOffense((inter_arrival, TD))
+                    last_time_o = item[0]
+                else:
+                    inter_arrival = last_time_d - item[0]
+                    self.UpdateDefense((inter_arrival, TD))
+                    last_time_d = item[0]
+
 
     def UpdateOffense(self, data):
         self.offense.Update(data)
