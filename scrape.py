@@ -3,21 +3,24 @@ import datetime
 
 
 #Teams that can be simulated currently
-teams = ["Eagles", "Giants"]
+teams = ["Eagles", "Giants", "Panthers"]
 
 #Number of preseason games played by each team
-preseason = { "Eagles": 4, "Giants": 5 }
+preseason = { "Eagles": 4, "Giants": 5, "Panthers": 4 }
 
 urls = {
     "Eagles": "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team7.html",
-    "Giants": "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team8.html"
+    "Giants": "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team8.html",
+    "Panthers": "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team29.html"
 }
 
 exceptions = {
     "Bears 23Eagles 28": ((23, 28), (15 + 6 + 4 / 60.0, "TD", "Bears")),
     "Bears 31Eagles 28": ((31, 28), (15 + 1 + 29 / 60.0, "TD", "Bears")),
-    "Giants 14Cardinals 19": ((14,19), (0 + 10 + 10 / 60.0, "TD", "Cardinals")),
-    "Lions 35Giants 14": ((27,14), (0 + 4 + 39 / 60.0, "TD", "Lions"))
+    "Giants 14Cardinals 19": ((14, 19), (0 + 10 + 10 / 60.0, "TD", "Cardinals")),
+    "Lions 35Giants 14": ((35, 14), (0 + 4 + 39 / 60.0, "TD", "Lions")),
+    "Panthers 19Steelers 37": ((19, 37), (0 + 3 + 53 / 60.0, "TD", "Panthers")),
+    "Panthers 21Lions 7": ((21, 7), (0 + 7 + 26 / 60.0, "TD", "Panthers"))
 }
 
 
@@ -107,11 +110,11 @@ def parseScoreTime(lines, cur_score, teams):
     else:
         raise ValueError("I don't know other goal types")
 
-    new_score, team = parseScore(lines[3:5], cur_score, teams, goal_type)
+    new_score, team = parseScore(lines[3:5], cur_score, teams, goal_type, rem_time)
 
     return new_score, (rem_time, goal_type, team)
 
-def parseScore(lines, cur_score, teams, goal_type):
+def parseScore(lines, cur_score, teams, goal_type, rem_time = None):
     """Intentionally brittle function to parse a score out from a string.
     Will ask to add exception on error.
     Returns the new score and team name
@@ -125,14 +128,14 @@ def parseScore(lines, cur_score, teams, goal_type):
     if str(cur_score[0]) in lines[0]:
         if str(cur_score[1]) in lines[1]:
             #Neither team has scored
-            error(lines, cur_score, teams, goal_type)
+            error(lines, cur_score, teams, goal_type, rem_time)
         elif str(cur_score[1] + points_for[goal_type]) in lines[1]:
             #Team 1 scored correct amount
             team = teams[1]
             new_score = (cur_score[0], cur_score[1] + points_for[goal_type])
         else:
             #Team 1 scored incorrectly
-            error(lines, cur_score, teams, goal_type)
+            error(lines, cur_score, teams, goal_type, rem_time)
     elif str(cur_score[0] + points_for[goal_type]) in lines[0]:
         if str(cur_score[1]) in lines[1]:
             #Team 0 scored correct amount
@@ -140,14 +143,14 @@ def parseScore(lines, cur_score, teams, goal_type):
             new_score = (cur_score[0] + points_for[goal_type], cur_score[1])
         else:
             #Team 0 scored incorrectly
-            error(lines, cur_score, teams, goal_type)
+            error(lines, cur_score, teams, goal_type, rem_time)
     else:
         #Both teams scored
-        error(lines, cur_score, teams, goal_type)
+        error(lines, cur_score, teams, goal_type, rem_time)
 
     return new_score, team
 
-def error(lines, cur_score, teams, goal_type):
+def error(lines, cur_score, teams, goal_type, rem_time=None):
     """Errors on odd data, and asks for an exception to be added
     """
     print("Add exception for: '"+ lines[0] + lines[1] + "'")
@@ -155,6 +158,7 @@ def error(lines, cur_score, teams, goal_type):
     print(cur_score)
     print(teams)
     print(goal_type)
+    print(rem_time)
     raise ValueError()
 
 
