@@ -1,17 +1,18 @@
 import os
 import datetime
 
-exceptions = { "Bears 23Eagles 28": ((23, 28), (15 + 6 + 4 / 60.0, "TD", "Bears")),
-               "Bears 31Eagles 28": ((31, 28), (15 + 1 + 29 / 60.0, "TD", "Bears")),
-               "Giants 14Cardinals 19": ((14,19), (0 + 10 + 10 / 60.0, "TD", "Cardinals")),
-               "Lions 35Giants 14": ((27,14), (0 + 4 + 39 / 60.0, "TD", "Lions")) }
+exceptions = {
+    "Bears 23Eagles 28": ((23, 28), (15 + 6 + 4 / 60.0, "TD", "Bears")),
+    "Bears 31Eagles 28": ((31, 28), (15 + 1 + 29 / 60.0, "TD", "Bears")),
+    "Giants 14Cardinals 19": ((14,19), (0 + 10 + 10 / 60.0, "TD", "Cardinals")),
+    "Lions 35Giants 14": ((27,14), (0 + 4 + 39 / 60.0, "TD", "Lions"))
+}
 
 
 points_for = { "FG": 3, "TD": 7 }
 quarter_times = {"1st Quarter": 45, "2nd Quarter": 30,
                  "3rd Quarter": 15, "4th Quarter": 0 }
-games_in_season = 5
-games_to_ignore = 1
+preseason_games = 4
 
 def main():
     """Scrape a given team url, and print the results
@@ -29,20 +30,12 @@ def scrape_team(team_url):
     Returns a list of games from scrape_box_score
     """
     url_base = "http://www.covers.com"
-    url = url_base + team_url
-    output = os.popen("curl " + url + " | " +
+    output = os.popen("curl " + url_base + team_url + " | " +
                     "pup table.data td.datacell a attr{href}")
-    urls = []
-    for line in output:
-        if "boxscore" in line:
-            urls.append(url_base + line.strip())
 
-    games = []
-    for url in urls[games_to_ignore:]:
-        if len(games) >= games_in_season:
-            break
-        games.append(scrape_box_score(url))
-    return games
+    urls = [url_base + line.strip() for line in output if "boxscore" in line]
+
+    return [scrape_box_score(url) for url in urls[:-preseason_games]]
 
 def scrape_box_score(url):
     """Scrape a team url from www.covers.com.
@@ -61,17 +54,12 @@ def scrape_box_score(url):
 
     teams = get_team_names(filtered)
     cur_score = (0,0)
-    i = 0
-    line = filtered[i]
-    while line != None:
-        if line in quarter_times:
-            cur_score, score = parseScoreTime(filtered[i: i+5], cur_score, teams, )
+
+    slices = [filtered[i: i+5] for i in range(len(filtered) - 5)]
+    for view in slices:
+        if view[0] in quarter_times:
+            cur_score, score = parseScoreTime(view, cur_score, teams)
             scores.append(score)
-        i += 1
-        try:
-            line = filtered[i]
-        except IndexError:
-            line = None
 
     return scores
 
@@ -79,14 +67,10 @@ def get_team_names(lines):
     """Gets the names of teams playing a certain game.
     Returns a tuple of two team names as strings
     """
-    i = 0
-    line = lines[i]
-    while line != None:
-        if line in quarter_times:
-            team0 = lines[i+3].split()[0]
-            team1 = lines[i+4].split()[0]
-            break;
-        i += 1
+    for i, line in enumerate(lines):
+        if lines[i] in quarter_times:
+            team0 = lines[i + 3].split()[0]
+            team1 = lines[i + 4].split()[0]
     return (team0, team1)
 
 def parseScoreTime(lines, cur_score, teams):
@@ -107,7 +91,6 @@ def parseScoreTime(lines, cur_score, teams):
     rem_time = time.minute + time.second / 60.0 + quarter_rem_time
 
     goal_line = lines[2]
-    goal_type = ""
     if "TD" in goal_line:
         goal_type = "TD"
     elif "FG" in goal_line:
@@ -132,19 +115,25 @@ def parseScore(lines, cur_score, teams, goal_type):
 
     if str(cur_score[0]) in lines[0]:
         if str(cur_score[1]) in lines[1]:
+            #Neither team has scored
             error(lines, cur_score, teams, goal_type)
         elif str(cur_score[1] + points_for[goal_type]) in lines[1]:
+            #Team 1 scored correct amount
             team = teams[1]
             new_score = (cur_score[0], cur_score[1] + points_for[goal_type])
         else:
+            #Team 1 scored incorrectly
             error(lines, cur_score, teams, goal_type)
     elif str(cur_score[0] + points_for[goal_type]) in lines[0]:
         if str(cur_score[1]) in lines[1]:
+            #Team 0 scored correct amount
             team = teams[0]
             new_score = (cur_score[0] + points_for[goal_type], cur_score[1])
         else:
+            #Team 0 scored incorrectly
             error(lines, cur_score, teams, goal_type)
     else:
+        #Both teams scored
         error(lines, cur_score, teams, goal_type)
 
     return new_score, team
