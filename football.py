@@ -137,65 +137,25 @@ def scorePredRemaining(pmf, rem_time, score):
     mix += score
     return mix
 
-def constructPriors():
-    """Constructs an even prior for both teams, and then
-    uses data from www.covers.com from the 2014 season to
-    update the priors
-    """
-
-    eagles = Football((numpy.linspace(0, 10, 201), numpy.linspace(0, 1, 201)), "Eagles")
-    giants = Football((numpy.linspace(0, 10, 201), numpy.linspace(0, 1, 201)), "Giants")
-
-    eagles_data = scrape_team("Eagles")
-    giants_data = scrape_team("Giants")
-
-    last_time_o = 0
-    last_time_d = 0
-    for game in eagles_data:
-        last_time_o += 60
-        last_time_d += 60
-        for item in game:
-            TD = (item[1] == "TD")
-            if item[2] == "Eagles":
-                inter_arrival = last_time_o - item[0]
-                eagles.UpdateOffense((inter_arrival, TD))
-                last_time_o = item[0]
-            else:
-                inter_arrival = last_time_d - item[0]
-                eagles.UpdateDefense((inter_arrival, TD))
-                last_time_d = item[0]
-
-    last_time_o = 0
-    last_time_d = 0
-    for game in giants_data:
-        last_time_o += 60
-        last_time_d += 60
-        for item in game:
-            if item[2] == "Giants":
-                TD = (item[1] == "TD")
-                inter_arrival = last_time_o - item[0]
-                giants.UpdateOffense((inter_arrival, TD))
-                last_time_o = item[0]
-            else:
-                inter_arrival = last_time_d - item[0]
-                eagles.UpdateDefense((inter_arrival, TD))
-
-    return eagles, giants
 
 
 def main():
-    """Look at the October 12th, 2014 game between the Giants and the Eagles,
-    and predict the probabilities of each team winning.
-    """
+    prior = (numpy.linspace(0, 10, 201), numpy.linspace(0, 1, 201))
+    team0name = "Eagles"
+    team1name = "Panthers"
+    team0 = Football(prior, team0name)
+    team1 = Football(prior, team1name)
 
-    eagles, giants = constructPriors()
-
-    GoalTotalGiants = giants.PredRemaining(60, 0, eagles)
-    GoalTotalEagles = eagles.PredRemaining(60, 0, giants)
-    print("Giants win", GoalTotalEagles < GoalTotalGiants)
-    print("Eagles win", GoalTotalGiants < GoalTotalEagles)
-    print(GoalTotalEagles.MakeCdf().CredibleInterval(80))
-    print(GoalTotalGiants.MakeCdf().CredibleInterval(80))
+    goal_total0 = team0.PredRemaining(60, 0, team1)
+    goal_total1 = team1.PredRemaining(60, 0, team0)
+    thinkplot.Cdf(goal_total0.MakeCdf(), label="Score")
+    thinkplot.Cdf(team0.offense.PredRemaining(60,0).MakeCdf(), label="Offense")
+    thinkplot.Cdf(team1.defense.PredRemaining(60,0).MakeCdf(), label="Defense")
+    print(team0name + " win", goal_total0 > goal_total1)
+    print(team1name + " win", goal_total1 > goal_total0)
+    print(goal_total0.MakeCdf().CredibleInterval(90))
+    print(goal_total1.MakeCdf().CredibleInterval(90))
+    thinkplot.Show()
 
 if __name__ == '__main__':
     main()
