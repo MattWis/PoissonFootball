@@ -27,9 +27,11 @@ class Football():
         self.defense.Update(data)
 
     def PredRemaining(self, rem_time, score, opp_team):
-        you_score = self.offense.PredRemaining(rem_time, score)
-        opponent_lets = opp_team.defense.PredRemaining(rem_time, score)
-        return (you_score + opponent_lets) / 2
+        adjusted = OffenseOrDefense(([0],[0]))
+        adjusted.score = self.offense.score.AddPmf(opp_team.defense.score) / 2
+        adjusted.TDPercent = self.offense.TDPercent.AddPmf(opp_team.defense.TDPercent) / 2
+
+        return adjusted.PredRemaining(rem_time, score)
 
 class OffenseOrDefense():
     """ Represents hypotheses about a Football teams offense or defense,
@@ -58,7 +60,7 @@ class OffenseOrDefense():
         rem_time: remaining time in the game in minutes
         points_scored: points already scored
         """
-        scorePredict = self.score.PredRemaining(rem_time,0)
+        scorePredict = scorePredRemaining(self.score, rem_time, 0)
         scorePmf = thinkbayes2.Pmf()
         for prob_td, prob_p in self.TDPercent.Items():
             tdProbPmf = thinkbayes2.Pmf()
@@ -104,21 +106,16 @@ class ScoreCount(thinkbayes2.Suite):
         like = thinkbayes2.EvalExponentialPdf(x,lam) #evaluating for every value of lamda
         return like
 
-    def PredRemaining(self, rem_time, score):
-        """Plots the predictive distribution for final number of goals.
+def scorePredRemaining(pmf, rem_time, score):
+    metapmf=thinkbayes2.Pmf()
+    for lam, prob in pmf.Items():
+        lt = lam*rem_time/60
+        pmf=thinkbayes2.MakePoissonPmf(lt,20)
+        metapmf[pmf]=prob
 
-        rem_time: remaining time in the game in minutes
-        score: number of goals already scored
-        """
-        metapmf=thinkbayes2.Pmf() #PMF about PMFS. probabilities of pmf values
-        for lam, prob in self.Items(): #loop through probabilities of lamdas
-            lt = lam*rem_time/60
-            pmf=thinkbayes2.MakePoissonPmf(lt,20)
-            metapmf[pmf]=prob
-
-        mix = thinkbayes2.MakeMixture(metapmf)
-        mix += score
-        return mix
+    mix = thinkbayes2.MakeMixture(metapmf)
+    mix += score
+    return mix
 
 def constructPriors():
     """Constructs an even prior for both teams, and then
