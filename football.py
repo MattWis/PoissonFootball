@@ -123,8 +123,8 @@ def constructPriors():
     update the priors
     """
 
-    eagles = Football((numpy.linspace(0, 20, 201), numpy.linspace(0, 1, 201)), "Eagles")
-    giants = Football((numpy.linspace(0, 20, 201), numpy.linspace(0, 1, 201)), "Giants")
+    eagles = Football((numpy.linspace(0, 10, 201), numpy.linspace(0, 1, 201)), "Eagles")
+    giants = Football((numpy.linspace(0, 10, 201), numpy.linspace(0, 1, 201)), "Giants")
 
     eagles_data = scrape_team("Eagles")
     giants_data = scrape_team("Giants")
