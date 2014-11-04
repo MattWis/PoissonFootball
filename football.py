@@ -123,14 +123,11 @@ def constructPriors():
     update the priors
     """
 
-    eagles_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team7.html"
-    giants_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team8.html"
-
     eagles = Football((numpy.linspace(0, 20, 201), numpy.linspace(0, 1, 201)), "Eagles")
     giants = Football((numpy.linspace(0, 20, 201), numpy.linspace(0, 1, 201)), "Giants")
 
-    eagles_data = scrape_team(eagles_url)
-    giants_data = scrape_team(giants_url)
+    eagles_data = scrape_team("Eagles")
+    giants_data = scrape_team("Giants")
 
     last_time_o = 0
     last_time_d = 0

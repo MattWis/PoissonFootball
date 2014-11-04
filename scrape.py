@@ -1,6 +1,18 @@
 import os
 import datetime
 
+
+#Teams that can be simulated currently
+teams = ["Eagles", "Giants"]
+
+#Number of preseason games played by each team
+preseason = { "Eagles": 4, "Giants": 5 }
+
+urls = {
+    "Eagles": "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team7.html",
+    "Giants": "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team8.html"
+}
+
 exceptions = {
     "Bears 23Eagles 28": ((23, 28), (15 + 6 + 4 / 60.0, "TD", "Bears")),
     "Bears 31Eagles 28": ((31, 28), (15 + 1 + 29 / 60.0, "TD", "Bears")),
@@ -12,19 +24,16 @@ exceptions = {
 points_for = { "FG": 3, "TD": 7 }
 quarter_times = {"1st Quarter": 45, "2nd Quarter": 30,
                  "3rd Quarter": 15, "4th Quarter": 0 }
-preseason_games = 4
 
 def main():
     """Scrape a given team url, and print the results
     """
-    giants_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team8.html"
-    eagles_url = "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team7.html"
-    team_url = eagles_url
-    games = scrape_team(team_url)
-    print(games)
+    print(scrape_team("Eagles"))
 
+def scrape_team(team_name):
+    return scrape_team_url(urls[team_name], preseason[team_name])
 
-def scrape_team(team_url):
+def scrape_team_url(team_url, preseason_games):
     """Scrape a team url from www.covers.com.
     Uses pup to process html.
     Returns a list of games from scrape_box_score
