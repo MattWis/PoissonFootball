@@ -3,15 +3,18 @@ import datetime
 
 
 #Teams that can be simulated currently
-teams = ["Eagles", "Giants", "Panthers"]
+teams = ["Eagles", "Giants", "Panthers", "Patriots", "Seahawks"]
 
 #Number of preseason games played by each team
-preseason = { "Eagles": 4, "Giants": 5, "Panthers": 4 }
+preseason = { "Eagles": 4, "Giants": 5, "Panthers": 4,
+              "Patriots": 4, "Seahawks": 4 }
 
 urls = {
     "Eagles": "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team7.html",
     "Giants": "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team8.html",
-    "Panthers": "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team29.html"
+    "Panthers": "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team29.html",
+    "Patriots": "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team18.html",
+    "Seahawks": "/pageLoader/pageLoader.aspx?page=/data/nfl/teams/pastresults/2014-2015/team19.html"
 }
 
 exceptions = {
@@ -20,7 +23,18 @@ exceptions = {
     "Giants 14Cardinals 19": ((14, 19), (0 + 10 + 10 / 60.0, "TD", "Cardinals")),
     "Lions 35Giants 14": ((35, 14), (0 + 4 + 39 / 60.0, "TD", "Lions")),
     "Panthers 19Steelers 37": ((19, 37), (0 + 3 + 53 / 60.0, "TD", "Panthers")),
-    "Panthers 21Lions 7": ((21, 7), (0 + 7 + 26 / 60.0, "TD", "Panthers"))
+    "Panthers 21Lions 7": ((21, 7), (0 + 7 + 26 / 60.0, "TD", "Panthers")),
+    "Patriots 43Broncos 21": ((43, 21), (0 + 13 + 57 / 60.0, "TD", "Patriots")),
+    "Patriots 45Bears 15": ((45, 15), (15 + 0 + 54 / 60.0, "TD", "Bears")),
+    "Patriots 48Bears 23": ((48, 23), (0 + 5 + 16 / 60.0, "TD", "Bears")),
+    "Patriots 27Jets 25": ((27, 25), (0 + 2 + 31 / 60.0, "TD", "Jets")),
+    "Bills 22Patriots 30": ((22, 30), (0 + 5 + 58 / 60.0, "TD", "Bills")),
+    "Seahawks 22Packers 19": ((22, 19), (0 + 1 + 25 / 60.0, "TD", "Seahawks")),
+    "Rams 21Seahawks 19": ((21, 19), (0 + 9 + 44 / 60.0, "TD", "Seahawks")),
+    "Seahawks 17Broncos 12": ((17, 12), (0 + 9 + 20 / 60.0, "TD", "Broncos")),
+    "Seahawks 20Broncos 20": ((20, 20), (0 + 0 + 18 / 60.0, "TD", "Broncos")),
+    "Seahawks 29Packers 10": ((29, 10), (0 + 14 + 55 / 60.0, "TD", "Seahawks")),
+    "Seahawks 29Packers 16": ((29, 16), (0 + 9 + 31 / 60.0, "TD", "Packers")),
 }
 
 
@@ -70,8 +84,10 @@ def scrape_box_score(url):
     slices = [filtered[i: i+5] for i in range(len(filtered) - 5)]
     for view in slices:
         if view[0] in quarter_times:
-            cur_score, score = parseScoreTime(view, cur_score, teams)
-            scores.append(score)
+            new_score, score = parseScoreTime(view, cur_score, teams)
+            if score != None:
+              cur_score = new_score
+              scores.append(score)
 
     return scores
 
@@ -108,7 +124,7 @@ def parseScoreTime(lines, cur_score, teams):
     elif "FG" in goal_line:
         goal_type = "FG"
     else:
-        raise ValueError("I don't know other goal types")
+        return (None, None)
 
     new_score, team = parseScore(lines[3:5], cur_score, teams, goal_type, rem_time)
 

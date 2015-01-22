@@ -141,8 +141,8 @@ def scorePredRemaining(pmf, rem_time, score):
 
 def main():
     prior = (numpy.linspace(0, 10, 201), numpy.linspace(0, 1, 201))
-    team0name = "Eagles"
-    team1name = "Panthers"
+    team0name = "Patriots"
+    team1name = "Seahawks"
     team0 = Football(prior, team0name)
     team1 = Football(prior, team1name)
 
